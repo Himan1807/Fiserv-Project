@@ -3,6 +3,7 @@ import { Activity, AlertTriangle, ShieldCheck, AlertCircle } from 'lucide-react'
 
 export const SummaryCards = ({ transactions }) => {
   const total = transactions.length;
+  const criticalRisk = transactions.filter(t => t.risk_level === "CRITICAL").length;
   const highRisk = transactions.filter(t => t.risk_level === "HIGH").length;
   const mediumRisk = transactions.filter(t => t.risk_level === "MEDIUM").length;
   const lowRisk = transactions.filter(t => t.risk_level === "LOW").length;
@@ -14,6 +15,13 @@ export const SummaryCards = ({ transactions }) => {
       icon: Activity,
       color: "text-blue-600 dark:text-blue-400",
       bg: "bg-blue-100 dark:bg-blue-900/50"
+    },
+    {
+      title: "Critical Risk",
+      value: criticalRisk,
+      icon: AlertCircle,
+      color: "text-rose-700 dark:text-rose-300",
+      bg: "bg-rose-100 dark:bg-rose-900/50"
     },
     {
       title: "High Risk",
@@ -39,7 +47,7 @@ export const SummaryCards = ({ transactions }) => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-5 mb-6">
       {cards.map((card, idx) => {
         const Icon = card.icon;
         return (

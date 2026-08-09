@@ -32,7 +32,9 @@ export const TransactionTable = ({ transactions, onViewDetails }) => {
             {transactions.map((txn, index) => {
               // Apply row background highlighting based on risk level
               let rowClass = "hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors group";
-              if (txn.risk_level === "HIGH") {
+              if (txn.risk_level === "CRITICAL") {
+                rowClass += " bg-rose-100/70 dark:bg-rose-950/30";
+              } else if (txn.risk_level === "HIGH") {
                 rowClass += " bg-red-50/50 dark:bg-red-900/10";
               } else if (txn.risk_level === "MEDIUM") {
                 rowClass += " bg-yellow-50/50 dark:bg-yellow-900/10";
@@ -61,6 +63,7 @@ export const TransactionTable = ({ transactions, onViewDetails }) => {
                       <div className="w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                         <div 
                           className={`h-full ${
+                            txn.risk_level === 'CRITICAL' ? 'bg-rose-700' :
                             txn.risk_level === 'HIGH' ? 'bg-red-500' : 
                             txn.risk_level === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
                           }`}

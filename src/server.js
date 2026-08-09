@@ -1,94 +1,98 @@
 /**
- * ENTRY POINT
- * Boots Express HTTP server and WebSocket server on the same port.
- * Wires all layers together.
+ * Express and WebSocket entry point for the fraud-scoring API.
  */
 
-const express   = require('express');
-const http      = require('http');
+const express = require('express');
+const http = require('http');
 const WebSocket = require('ws');
-const path      = require('path');
 
 const transactionRoutes = require('./routes/transactions');
 const { initAlertPublisher } = require('./events/alertPublisher');
 
-const app    = express();
+const app = express();
 const server = http.createServer(app);
-const PORT   = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const allowedOrigins = new Set(
+  (process.env.CORS_ORIGIN || 'http://localhost:5173')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean)
+);
 
-// ── Middleware ─────────────────────────────────────────────────────
-app.use(express.json());
+function isAllowedOrigin(origin) {
+  return !origin || allowedOrigins.has(origin);
+}
+
+app.use(express.json({ limit: '100kb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// CORS — permissive for hackathon / local dev
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
+  const origin = req.headers.origin;
+
+  if (!isAllowedOrigin(origin)) {
+    return res.status(403).json({ success: false, message: 'Origin is not allowed' });
+  }
+
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Vary', 'Origin');
+  }
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  if (req.method === 'OPTIONS') return res.sendStatus(200);
-  next();
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(204);
+  }
+
+  return next();
 });
 
-// Request logger
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
-  next();
-});
-
-// ── Routes ─────────────────────────────────────────────────────────
 app.use('/api/transactions', transactionRoutes);
-app.use('/api/metrics',      transactionRoutes); // metrics endpoint lives in same router
-app.use('/api/export',       transactionRoutes); // export endpoint lives in same router
+app.use('/api/metrics', transactionRoutes);
+app.use('/api/export', transactionRoutes);
 
-// Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString(), service: 'UPI Fraud Detector' });
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    service: 'UPI Fraud Detector',
+  });
 });
 
-// 404 fallback
 app.use((req, res) => {
   res.status(404).json({ success: false, message: `Route ${req.method} ${req.path} not found` });
 });
 
-// ── WebSocket Server ────────────────────────────────────────────────
-const wss = new WebSocket.Server({ server });
+const wss = new WebSocket.Server({
+  server,
+  verifyClient: ({ origin }, done) => {
+    if (isAllowedOrigin(origin)) {
+      done(true);
+      return;
+    }
 
-wss.on('connection', (ws, req) => {
-  console.log(`[WS] Client connected — total: ${wss.clients.size}`);
+    done(false, 403, 'Origin is not allowed');
+  },
+});
 
-  ws.on('close', () => {
-    console.log(`[WS] Client disconnected — total: ${wss.clients.size}`);
+wss.on('connection', ws => {
+  ws.on('error', err => {
+    console.error('[WebSocket] Client error:', err.message);
   });
 
-  ws.on('error', (err) => {
-    console.error('[WS] Client error:', err.message);
-  });
-
-  // Send welcome ping so client knows the connection is live
   ws.send(JSON.stringify({
     event: 'connected',
-    data:  { message: 'UPI Fraud Detector WebSocket ready', timestamp: new Date().toISOString() }
+    data: {
+      message: 'UPI Fraud Detector WebSocket ready',
+      timestamp: new Date().toISOString(),
+    },
   }));
 });
 
-// Inject WebSocket server into the alert publisher
 initAlertPublisher(wss);
 
-// ── Start ───────────────────────────────────────────────────────────
 server.listen(PORT, () => {
-  console.log('');
-  console.log('╔══════════════════════════════════════════════════╗');
-  console.log('║       UPI FRAUD DETECTOR — BACKEND READY         ║');
-  console.log(`║  HTTP :  http://localhost:${PORT}                    ║`);
-  console.log(`║  WS   :  ws://localhost:${PORT}                      ║`);
-  console.log('╠══════════════════════════════════════════════════╣');
-  console.log('║  POST /api/transactions/evaluate                 ║');
-  console.log('║  GET  /api/transactions/flagged                  ║');
-  console.log('║  GET  /api/transactions/recent                   ║');
-  console.log('║  GET  /api/transactions/metrics                  ║');
-  console.log('║  GET  /api/export/csv                            ║');
-  console.log('╚══════════════════════════════════════════════════╝');
-  console.log('');
+  console.log(`UPI Fraud Detector API listening at http://localhost:${PORT}`);
 });
 
 module.exports = { app, server };

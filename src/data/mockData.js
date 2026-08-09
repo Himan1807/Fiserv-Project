@@ -1,88 +1,40 @@
-export const MOCK_TRANSACTIONS = [
-  {
-    transaction_id: "tx123",
-    payer_id: "9988776655",
-    payee_id: "MERCHANT121",
-    amount: 9500,
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    location: "Delhi",
-    device_id: "ABC123",
-    risk_score: 78,
-    risk_level: "HIGH",
-    reasons: ["HIGH_AMOUNT", "NEW_MERCHANT", "VELOCITY_SPIKE"],
-  },
-  {
-    transaction_id: "tx124",
-    payer_id: "9988776650",
-    payee_id: "MERCHANT002",
-    amount: 150,
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    location: "Mumbai",
-    device_id: "XYZ987",
-    risk_score: 12,
-    risk_level: "LOW",
-    reasons: [],
-  },
-  {
-    transaction_id: "tx125",
-    payer_id: "9988776622",
-    payee_id: "USER554",
-    amount: 4500,
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    location: "Bangalore",
-    device_id: "LMN456",
-    risk_score: 55,
-    risk_level: "MEDIUM",
-    reasons: ["DEVICE_CHANGE"],
-  },
-  {
-    transaction_id: "tx126",
-    payer_id: "9988776688",
-    payee_id: "USER112",
-    amount: 50,
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    location: "Chennai",
-    device_id: "QWE789",
-    risk_score: 5,
-    risk_level: "LOW",
-    reasons: [],
-  },
+const DEMO_PROFILES = [
+  { payer_id: '9988776655', device_id: 'DEVICE-DEL-001', location: 'Delhi' },
+  { payer_id: '9988776650', device_id: 'DEVICE-MUM-002', location: 'Mumbai' },
+  { payer_id: '9988776622', device_id: 'DEVICE-BLR-003', location: 'Bengaluru' },
+  { payer_id: '9988776688', device_id: 'DEVICE-CHE-004', location: 'Chennai' },
 ];
 
-export const generateRandomTransaction = () => {
-  const levels = ["LOW", "LOW", "LOW", "MEDIUM", "MEDIUM", "HIGH"];
-  const selectedLevel = levels[Math.floor(Math.random() * levels.length)];
-  
-  let risk_score = 0;
-  let amount = 0;
-  let reasons = [];
+const PAYEES = [
+  'grocer@upi',
+  'fuel@paytm',
+  'utility@oksbi',
+  'merchant@okaxis',
+  'delivery@okhdfcbank',
+];
 
-  if (selectedLevel === "HIGH") {
-    risk_score = Math.floor(Math.random() * 21) + 80; // 80-100
-    amount = Math.floor(Math.random() * 90000) + 10000;
-    reasons = ["HIGH_AMOUNT", "VELOCITY_SPIKE", "UNUSUAL_LOCATION"];
-  } else if (selectedLevel === "MEDIUM") {
-    risk_score = Math.floor(Math.random() * 40) + 40; // 40-79
-    amount = Math.floor(Math.random() * 9000) + 1000;
-    reasons = ["NEW_MERCHANT", "DEVICE_CHANGE"];
-  } else {
-    risk_score = Math.floor(Math.random() * 40); // 0-39
-    amount = Math.floor(Math.random() * 900) + 10;
-    reasons = [];
-  }
+const AMOUNTS = [250, 700, 5000, 9500, 10000, 55000];
 
-  const cities = ["Delhi", "Mumbai", "Bangalore", "Chennai", "Kolkata", "Pune", "Hyderabad"];
-  
+let sequence = 0;
+
+/**
+ * Produces a raw transaction for the demo stream. The backend is the only
+ * component that calculates a score, risk level, and reason codes.
+ */
+export function generateDemoTransaction() {
+  const profile = DEMO_PROFILES[sequence % DEMO_PROFILES.length];
+  const payee = PAYEES[sequence % PAYEES.length];
+  const amount = AMOUNTS[sequence % AMOUNTS.length];
+  const useSharedDevice = sequence > 0 && sequence % 11 === 0;
+
+  sequence += 1;
+
   return {
-    transaction_id: `tx${Math.floor(Math.random() * 100000)}`,
-    payer_id: `${Math.floor(Math.random() * 9000000000) + 1000000000}`,
-    payee_id: `MERCHANT${Math.floor(Math.random() * 999)}`,
+    payer_id: profile.payer_id,
+    payee_id: payee,
     amount,
     timestamp: new Date().toISOString(),
-    location: cities[Math.floor(Math.random() * cities.length)],
-    device_id: `DEV${Math.floor(Math.random() * 9999)}`,
-    risk_score,
-    risk_level: selectedLevel,
-    reasons,
+    location: profile.location,
+    device_id: useSharedDevice ? 'DEVICE-SHARED-DEMO' : profile.device_id,
   };
-};
+}

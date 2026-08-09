@@ -33,6 +33,8 @@ export const TransactionModal = ({ transaction, onClose }) => {
 
   if (!transaction) return null;
 
+  const categoryBreakdown = transaction.category_breakdown || [];
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 backdrop-blur-sm p-4">
       <div 
@@ -41,6 +43,7 @@ export const TransactionModal = ({ transaction, onClose }) => {
       >
         {/* Header */}
         <div className={`p-6 border-b flex justify-between items-start ${
+          transaction.risk_level === 'CRITICAL' ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/30' :
           transaction.risk_level === 'HIGH' ? 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900/30' :
           transaction.risk_level === 'MEDIUM' ? 'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-100 dark:border-yellow-900/30' :
           'bg-gray-50 dark:bg-gray-900/20 border-gray-100 dark:border-gray-700'
@@ -144,7 +147,7 @@ export const TransactionModal = ({ transaction, onClose }) => {
                 <div className="text-center mb-6">
                   <div className="inline-flex items-center justify-center w-24 h-24 rounded-full border-4 mb-2 shadow-inner"
                     style={{
-                      borderColor: transaction.risk_level === 'HIGH' ? '#ef4444' : transaction.risk_level === 'MEDIUM' ? '#facc15' : '#22c55e',
+                      borderColor: transaction.risk_level === 'CRITICAL' ? '#be123c' : transaction.risk_level === 'HIGH' ? '#ef4444' : transaction.risk_level === 'MEDIUM' ? '#facc15' : '#22c55e',
                       backgroundColor: 'transparent'
                     }}
                   >
@@ -158,12 +161,12 @@ export const TransactionModal = ({ transaction, onClose }) => {
                 {/* Reasons */}
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Risk Factors</p>
-                  {transaction.reasons.length > 0 ? (
+                  {(transaction.reasons || []).length > 0 ? (
                     <ul className="space-y-3">
-                      {transaction.reasons.map((reason, idx) => (
+                      {(transaction.reasons || []).map((reason, idx) => (
                         <li key={idx} className="flex items-start gap-2">
                           <AlertTriangle className={`w-5 h-5 shrink-0 ${
-                            transaction.risk_level === 'HIGH' ? 'text-red-500' : 'text-yellow-500'
+                            transaction.risk_level === 'CRITICAL' || transaction.risk_level === 'HIGH' ? 'text-red-500' : 'text-yellow-500'
                           }`} />
                           <span className="text-sm text-gray-800 dark:text-gray-200 font-medium">
                             {reason.replace(/_/g, ' ')}
@@ -178,6 +181,21 @@ export const TransactionModal = ({ transaction, onClose }) => {
                     </div>
                   )}
                 </div>
+                {categoryBreakdown.length > 0 && (
+                  <div className="mt-6 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <p className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Category Breakdown</p>
+                    <div className="space-y-2">
+                      {categoryBreakdown.map(category => (
+                        <div key={category.category} className="flex items-center justify-between rounded-lg border border-gray-100 px-3 py-2 text-sm dark:border-gray-700">
+                          <span className="text-gray-600 dark:text-gray-300">{category.name}</span>
+                          <span className="font-semibold text-gray-900 dark:text-white">
+                            {Number(category.weightedScore).toFixed(1)} / {category.weight}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -192,11 +210,6 @@ export const TransactionModal = ({ transaction, onClose }) => {
           >
             Close
           </button>
-          {transaction.risk_level === 'HIGH' && (
-            <button className="px-4 py-2 rounded-lg font-medium text-white bg-red-600 hover:bg-red-700 transition-colors shadow-sm">
-              Block Transaction
-            </button>
-          )}
         </div>
       </div>
     </div>

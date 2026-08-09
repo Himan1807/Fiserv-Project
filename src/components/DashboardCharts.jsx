@@ -16,7 +16,7 @@ export const DashboardCharts = ({ transactions }) => {
         counts[timeStr] = { time: timeStr, total: 0, highRisk: 0 };
       }
       counts[timeStr].total += 1;
-      if (txn.risk_level === 'HIGH') {
+      if (txn.risk_level === 'HIGH' || txn.risk_level === 'CRITICAL') {
         counts[timeStr].highRisk += 1;
       }
     });
@@ -27,10 +27,11 @@ export const DashboardCharts = ({ transactions }) => {
 
   // Process data for Pie Chart
   const pieChartData = useMemo(() => {
-    const counts = { HIGH: 0, MEDIUM: 0, LOW: 0 };
+    const counts = { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 };
     transactions.forEach(txn => counts[txn.risk_level]++);
     return [
       { name: 'High Risk', value: counts.HIGH, color: '#ef4444' }, // red-500
+      { name: 'Critical Risk', value: counts.CRITICAL, color: '#be123c' }, // rose-700
       { name: 'Medium Risk', value: counts.MEDIUM, color: '#facc15' }, // yellow-400
       { name: 'Low Risk', value: counts.LOW, color: '#22c55e' } // green-500
     ];

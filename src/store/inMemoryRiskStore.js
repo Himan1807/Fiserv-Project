@@ -52,9 +52,10 @@ function getUserTransactionsInWindow(payer_id, windowMs, currentTimestamp) {
   const user = getUser(payer_id);
   if (!user) return [];
   const now = new Date(currentTimestamp).getTime();
-  return user.transactions.filter(tx =>
-    now - new Date(tx.timestamp).getTime() <= windowMs
-  );
+  return user.transactions.filter(tx => {
+    const elapsed = now - new Date(tx.timestamp).getTime();
+    return elapsed >= 0 && elapsed <= windowMs;
+  });
 }
 
 function getDevicePayers(device_id) {
@@ -182,6 +183,15 @@ function getRecentEvaluated(limit = 50) {
   return store.recent_evaluated.slice(0, limit);
 }
 
+function resetStore() {
+  store.users = {};
+  store.device_payers = {};
+  store.payee_risk_counter = {};
+  store.all_payees = new Set();
+  store.recent_evaluated = [];
+  store.flagged_transactions = [];
+}
+
 module.exports = {
   // Read
   getUser,
@@ -196,4 +206,5 @@ module.exports = {
   getMetrics,
   getFlaggedTransactions,
   getRecentEvaluated,
+  resetStore,
 };
